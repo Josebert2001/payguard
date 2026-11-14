@@ -55,8 +55,12 @@ class CachedEmbedder:
     def embed(self, texts: list[str], task: str = "document") -> list[list[float]]:
         if task != "query":
             return self.inner.embed(texts, task=task)
-        return [self.cache.get_or_load((self.name, text),
-                lambda text=text: self.inner.embed([text], task="query")[0]) for text in texts]
+        result = []
+        for text in texts:
+            def load() -> list[float]:
+                return self.inner.embed([text], task="query")[0]
+            result.append(self.cache.get_or_load((self.name, text), load))
+        return result
 
 
 class CachedRepository:

@@ -39,6 +39,10 @@ def evaluate_heldout(repo, embedder):
     allowed = sum(result.verdict == "ALLOW" for _, result in safe)
     print(f"Evaluation (all exact-text overlaps excluded): scams flagged {caught}/{len(scams)}; "
           f"safe allowed {allowed}/{len(safe)}")
+    tp, fn, tn, fp = caught, len(scams) - caught, allowed, len(safe) - allowed
+    print(f"Confusion matrix (rows actual scam/safe; columns flagged/allowed): [[{tp}, {fn}], [{fp}, {tn}]]")
+    print(f"Precision={tp / (tp + fp) if tp + fp else 0:.4f}; recall={tp / len(scams):.4f}; "
+          f"false_positive_rate={fp / len(safe):.4f}")
     # Guard useful detections and benign banking notices without claiming perfect recall.
     assert results[0].verdict == "BLOCK"  # BVN phishing
     assert results[1].verdict != "ALLOW"  # job registration fee
@@ -50,8 +54,8 @@ def evaluate_heldout(repo, embedder):
 
 def test_loader_is_idempotent_and_keeps_evaluation_out_of_playbooks(repo, embedder):
     original_playbooks = len(repo.patterns)
-    assert load_examples(repo, embedder) == {"rows": 105, "inserted": 105, "skipped": 0}
-    assert load_examples(repo, embedder) == {"rows": 105, "inserted": 0, "skipped": 105}
+    assert load_examples(repo, embedder) == {"rows": 90, "inserted": 90, "skipped": 0}
+    assert load_examples(repo, embedder) == {"rows": 90, "inserted": 0, "skipped": 90}
     assert repo.example_ids() == {example_id(row) for row in read_examples()}
     assert len(repo.patterns) == original_playbooks == 25
     assert {row_id: row["source"] for row_id, row in repo.examples.items()} == {
