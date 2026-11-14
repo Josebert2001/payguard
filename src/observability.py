@@ -31,6 +31,9 @@ def configure_logging() -> None:
         logger = logging.getLogger(name)
         logger.handlers = []
         logger.propagate = True
+        if name == "uvicorn.access":
+            # request_completed already records status/latency inside request context.
+            logger.disabled = True
 
 
 class Metrics:

@@ -26,7 +26,9 @@ class Connection:
 
 def test_fifty_parallel_screenings_exclusively_lease_connections(repo, embedder):
     active, lock, barrier = set(), Lock(), Barrier(50)
-    pool = ConnectionPool(Connection, min_size=2, max_size=5, timeout=3)
+    # Instrumented Python hashing is slower under coverage; admission timeout
+    # itself has a separate deterministic short-deadline test below.
+    pool = ConnectionPool(Connection, min_size=2, max_size=5, timeout=20)
     pool.warm()
 
     def screen(_):
@@ -141,3 +143,16 @@ def test_report_invalidates_entity_cache_and_embeddings_remain_immutable(repo, e
     v[0][0] = 999
     assert wrapped.embed(["OTP"], task="query")[0][0] != 999
     assert wrapped.cache.stats()["hits"] == 1
+
+
+def test_static_example_retrieval_is_cached_but_live_reports_are_not(repo, embedder, monkeypatch):
+    calls = []
+    reports = []
+    monkeypatch.setattr(repo, "search_examples", lambda vec, k=3: calls.append(1) or [])
+    monkeypatch.setattr(repo, "search_reports", lambda vec, k=3: reports.append(1) or [])
+    cached = CachedRepository(repo)
+    vec = embedder.embed(["Hello"])[0]
+    for _ in range(2):
+        assert cached.search_examples(vec) == []
+        assert cached.search_reports(vec) == []
+    assert len(calls) == 1 and len(reports) == 2

@@ -77,8 +77,14 @@ class CachedRepository:
         return self.entities.get_or_load(key, lambda: self.inner.lookup_entities(list(key)))
 
     def search_patterns(self, vec: list[float], region: str = "GLOBAL", k: int = 5) -> list[dict]:
-        return self.patterns.get_or_load((tuple(vec), region, k),
+        return self.patterns.get_or_load(("patterns", tuple(vec), region, k),
                                         lambda: self.inner.search_patterns(vec, region=region, k=k))
+
+    def search_examples(self, vec: list[float], k: int = 3) -> list[dict]:
+        # Training examples are knowledge playbooks too; live community reports
+        # deliberately remain uncached so newly filed evidence is read fresh.
+        return self.patterns.get_or_load(("examples", tuple(vec), k),
+                                        lambda: self.inner.search_examples(vec, k=k))
 
     def upsert_entity(self, *args, **kwargs) -> int:
         try:

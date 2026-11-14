@@ -158,7 +158,12 @@ class Db2Repository:
         from langchain_db2_tools import example_vector_store
 
         with self.pool.connection() as conn:
-            store = example_vector_store(conn, get_embedder())
+            # A DB2VS instance is connection-bound. Reuse it only on that same
+            # exclusive lease; dropped connections naturally get a fresh store.
+            store = getattr(conn, "_payguard_example_store", None)
+            if store is None:
+                store = example_vector_store(conn, get_embedder())
+                conn._payguard_example_store = store
             pairs = store.similarity_search_by_vector_with_relevance_scores(vec, k=max(1, int(k)))
             return [{**doc.metadata, "text": doc.page_content,
                      "similarity": round(1.0 - float(distance), 4)} for doc, distance in pairs]
