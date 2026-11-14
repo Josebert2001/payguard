@@ -108,7 +108,17 @@
     "git add -- tests/test_rules_edges.py tests/test_analyst_security.py tests/test_api_resilience.py tests/test_repository_contract.py tests/test_migrations.py loadtest .github/workflows/ci.yml scripts; git commit -m \"Expand security concurrency and Db2 integration verification\"",
     ".venv-work/Scripts/python.exe -m ruff check src tests loadtest scripts",
     "git diff --check; git status --short; git log -5 --oneline; rg -n 'PLACEHOLDER|105|11 community|global lock|single shared' README.md docs/ARCHITECTURE.md docs/PERFORMANCE.md docs/TESTING.md",
-    "git fetch origin main; git log --oneline main..origin/main"
+    "git fetch origin main; git log --oneline main..origin/main",
+    "from pathlib import Path\nimport subprocess,shutil,hashlib\nroot=Path.cwd().resolve()\ntarget=(root/\".submission-work/submissions/payguard\").resolve()\nassert target.is_relative_to(root/\".submission-work\")\nassert (root/\".submission-work/.git\").exists()\npaths=subprocess.check_output([\"git\",\"ls-files\",\"-z\"]).decode(\"utf-8\").split(\"\\0\")\ncopied=[]\nfor name in filter(None,paths):\n    if name==\"payguard-launch.zip\":\n        continue\n    source=root/name\n    destination=(target/name).resolve()\n    if not destination.is_relative_to(target):\n        raise ValueError(\"Destination outside submission folder\")\n    destination.parent.mkdir(parents=True,exist_ok=True)\n    shutil.copyfile(source,destination)\n    if hashlib.sha256(source.read_bytes()).digest()!=hashlib.sha256(destination.read_bytes()).digest():\n        raise ValueError(\"Copy mismatch\")\n    copied.append(name)\nprint({\"copied_and_hash_verified\":len(copied),\"destination\":\"submissions/payguard\",\"excluded\":\"stale launch ZIP\"})\n",
+    ".venv-work/Scripts/python.exe -m pytest --db2 -q --cov=src --cov-report=json:.artifacts/full-coverage.json --junitxml=.artifacts/full-tests.xml",
+    "gh run list --repo Josebert2001/payguard --limit 3 --json databaseId,status,conclusion,headSha,url",
+    ".venv-work/Scripts/python.exe -m pytest -q --cov=src --cov-report=json:.artifacts/unit-coverage.json --junitxml=.artifacts/unit-tests.xml",
+    ".venv-work/Scripts/python.exe -m ruff check src tests loadtest scripts",
+    "gh run view 43593989360 --repo Josebert2001/payguard --json name,status,conclusion,jobs,url",
+    "python scripts/record_results.py",
+    "git diff --check; git diff --stat",
+    ".venv-work/Scripts/python.exe -m pytest -q --cov=src --cov-report=json:.artifacts/unit-coverage.json --junitxml=.artifacts/unit-tests.xml",
+    "python scripts/record_results.py"
   ],
   "publishing_commands": [
     "git add -- README.md architecture.md docs/ARCHITECTURE.md docs/PERFORMANCE.md docs/TESTING.md docs/adr docs/results docs/COMMANDS.md tests/test_scam_examples.py",
@@ -116,6 +126,9 @@
     "git push origin main",
     "git -C .submission-work add -- submissions/payguard; git -C .submission-work commit -m \"Update PayGuard testing scalability and architecture\"",
     "git -C .submission-work push origin submission/payguard",
-    "gh pr comment 64 --repo KunalGolaIBM/IBM_Db2_TechX_Project_Submission --body-file .artifacts/pr64-comment.md"
+    "gh pr comment 64 --repo KunalGolaIBM/IBM_Db2_TechX_Project_Submission --body-file .artifacts/pr64-comment.md",
+    "git add -- src/services/analyst.py tests/test_analyst_security.py docs/results/verification.json docs/results/coverage.svg docs/results/command-log.json",
+    "git commit -m \"Preserve row-count analytics in SQL guard\"",
+    "git push origin main"
   ]
 }

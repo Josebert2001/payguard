@@ -81,7 +81,8 @@ def guard_sql(sql: str, max_rows: int = 100) -> str:
             if name not in ALLOWED_TABLES:
                 raise UnsafeSQL(f"Table {name} is not allowed.")
             tables.append(name)
-    if any(t in {"PG_SCAM_PATTERNS", "PG_REPORTS"} for t in tables) and any(tree.find_all(exp.Star)):
+    if any(t in {"PG_SCAM_PATTERNS", "PG_REPORTS"} for t in tables) and any(
+            not isinstance(star.parent, exp.Count) for star in tree.find_all(exp.Star)):
         raise UnsafeSQL("Select explicit columns; wildcard could expose EMBEDDING.")
     if any(tree.find_all(exp.Into, exp.Lock, exp.Command)):
         raise UnsafeSQL("Query has a forbidden operation.")

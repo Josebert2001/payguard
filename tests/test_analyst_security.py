@@ -34,6 +34,8 @@ def test_all_presets_run_without_a_key(repo, title):
 
 
 def test_row_limits_and_cte_scope():
+    # COUNT(*) counts rows without exposing vector columns.
+    assert guard_sql("SELECT COUNT(*) FROM PG_REPORTS").endswith("FETCH FIRST 100 ROWS ONLY")
     assert guard_sql("SELECT ID FROM PG_REPORTS FETCH FIRST 99999 ROWS ONLY").endswith("FETCH FIRST 100 ROWS ONLY")
     safe = guard_sql("WITH X AS (SELECT ID FROM PG_ENTITIES) SELECT * FROM X", max_rows=5)
     assert safe.endswith("FETCH FIRST 5 ROWS ONLY")
