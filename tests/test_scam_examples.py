@@ -9,8 +9,8 @@ from signals import run_rules
 class EvaluationRepo:
     """Remove ALL evaluation texts from retrieved candidates before selecting top-k.
 
-    The supplied 15 evaluation messages also appear in the 105-row training CSV.
-    Production still loads all 105 as requested; this adapter is evaluation-only.
+    Historical training data duplicated all 15 evaluation messages. Production now
+    uses the cleaned CSV; this evaluation-only filter also protects older databases.
     """
 
     def __init__(self, repo, heldout):
